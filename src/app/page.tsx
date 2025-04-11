@@ -74,13 +74,25 @@ const ChatPage = ({ userId }: { userId: string }) => {
     generateAiInsights();
   }, [messages]);
 
-
   useEffect(() => {
     // Scroll to bottom on new message
     if (chatContentRef.current) {
         chatContentRef.current.scrollTop = chatContentRef.current.scrollHeight;
     }
   }, [messages]);
+
+  useEffect(() => {
+    // Load chat history from local storage on component mount
+    const storedChatHistory = localStorage.getItem(`chatHistory_${userId}`);
+    if (storedChatHistory) {
+      setMessages(JSON.parse(storedChatHistory));
+    }
+  }, [userId]);
+
+  useEffect(() => {
+    // Save chat history to local storage whenever messages state updates
+    localStorage.setItem(`chatHistory_${userId}`, JSON.stringify(messages));
+  }, [messages, userId]);
 
   return (
     <div className="flex flex-col h-screen bg-background">
