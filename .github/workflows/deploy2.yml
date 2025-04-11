@@ -33,6 +33,3 @@ jobs:
         with:
           folder: out
           branch: gh-pages
-```
-```
-print(default_api.natural_language_write_file(language = "json", path = "package.json", prompt = "add a new script to the scripts section called export. The value should be next export."))
