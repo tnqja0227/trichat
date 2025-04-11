@@ -166,8 +166,63 @@ export default function Home() {
     }
   };
 
+  // Test function to check chat history
+  const runChatHistoryTest = async () => {
+    // Log in as surae1
+    setUserId('surae1');
+    setPassword('surae1');
+    handleLogin();
+
+    // Wait for login to complete
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // Add a test message
+    const testMessage = 'This is a test message.';
+    localStorage.setItem('testMessage', testMessage); // Set test message
+
+    // Log out
+    setLoggedIn(false);
+    setUserId('');
+    setPassword('');
+
+    // Log back in as surae1
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    setUserId('surae1');
+    setPassword('surae1');
+    handleLogin();
+
+    // Wait for login and chat history load
+    await new Promise(resolve => setTimeout(resolve, 1000));
+
+    // Check if the test message is present in the loaded messages
+    const storedChatHistory = localStorage.getItem(`chatHistory_surae1`);
+    if (storedChatHistory) {
+      const messages = JSON.parse(storedChatHistory);
+      const testMessageFromStorage = localStorage.getItem('testMessage'); // Get test message
+
+      // Check if the test message exists in the messages
+      const messageFound = messages.some((message: any) => message.text === testMessageFromStorage); // Check with testMessageFromStorage
+
+      if (messageFound) {
+        alert('Chat history test passed!');
+      } else {
+        alert('Chat history test failed: Test message not found.');
+      }
+    } else {
+      alert('Chat history test failed: No chat history found.');
+    }
+
+    localStorage.removeItem('testMessage'); // Remove test message
+  };
+
   if (loggedIn) {
-    return <ChatPage userId={userId} />;
+    return (
+        <>
+          <ChatPage userId={userId} />
+          <Button onClick={runChatHistoryTest}>Run Chat History Test</Button>
+        </>
+    );
   }
 
   return (
