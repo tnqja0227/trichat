@@ -23,8 +23,3 @@ jobs:
 
       - name: Build Next.js app
         run: npm run build
-
-      - name: Deploy
-        # TODO: Add your deployment steps here.
-        # Example: deploy to vercel, netlify, aws, etc
-        run: echo "Deploying to production..."
