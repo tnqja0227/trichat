@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -30,10 +30,10 @@ const UserChatAvatar = () => {
 
 // Separate ChatPage component
 const ChatPage = ({ userId }: { userId: string }) => {
-  const [messages, setMessages] = useState<{ sender: 'user' | 'ai'; text: string; }[]>([]);
+  const [messages, setMessages] = useState<{ sender: 'user' | 'ai'; text: string; insights?: { themes: string[]; sentiment: string; summary: string; }; }[]>([]);
   const [input, setInput] = useState('');
-  const [insights, setInsights] = useState<{ themes: string[]; sentiment: string; summary: string; } | null>(null);
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
+  const chatContentRef = useRef<HTMLDivElement>(null);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -41,48 +41,69 @@ const ChatPage = ({ userId }: { userId: string }) => {
     const newMessage = { sender: 'user', text: input };
     setMessages(prevMessages => [...prevMessages, newMessage]);
     setInput('');
-
-    setIsLoadingInsights(true);
-    const chatHistory = [...messages, newMessage].map(m => `${m.sender}: ${m.text}`).join('\n');
-
-    try {
-      const insightsData = await generateInsights({ chatHistory });
-      setInsights(insightsData);
-    } catch (error) {
-      console.error("Error generating insights:", error);
-      // Optionally set an error state to display an error message to the user
-    } finally {
-      setIsLoadingInsights(false);
-    }
   };
 
   useEffect(() => {
+    const generateAiInsights = async () => {
+      if (messages.length > 0 && messages[messages.length - 1].sender === 'user') {
+        setIsLoadingInsights(true);
+        const chatHistory = messages.map(m => `${m.sender}: ${m.text}`).join('\n');
+        try {
+          const insightsData = await generateInsights({ chatHistory });
+          setMessages(prevMessages => {
+            const updatedMessages = [...prevMessages];
+            updatedMessages[prevMessages.length - 1] = { ...updatedMessages[prevMessages.length - 1], insights: insightsData };
+            return updatedMessages;
+          });
+        } catch (error) {
+          console.error("Error generating insights:", error);
+        } finally {
+          setIsLoadingInsights(false);
+        }
+      }
+    };
+
+    generateAiInsights();
+  }, [messages]);
+
+
+  useEffect(() => {
     // Scroll to bottom on new message
-    const chatContent = document.querySelector('.chat-content');
-    if (chatContent) {
-      chatContent.scrollTop = chatContent.scrollHeight;
+    if (chatContentRef.current) {
+        chatContentRef.current.scrollTop = chatContentRef.current.scrollHeight;
     }
   }, [messages]);
 
   return (
-    <div className="flex flex-col md:flex-row h-screen bg-background">
+    <div className="flex flex-col h-screen bg-background">
       {/* Chat Interface */}
       <div className="flex-1 p-4">
         <Card className="h-full flex flex-col">
           <CardHeader className="py-4">
             <h2 className="text-lg font-semibold">실시간 채팅 ({userId}님)</h2>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto chat-content">
+          <CardContent className="flex-1 overflow-y-auto chat-content" ref={chatContentRef}>
             <ScrollArea className="h-full">
-            {messages.map((message, index) => (
-              <div key={index} className={`mb-2 flex items-start ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {message.sender === 'ai' && <AIChatAvatar />}
-                <div className={`ml-2 rounded-lg p-3 w-fit max-w-[60%] ${message.sender === 'user' ? 'bg-secondary text-secondary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                  {message.text}
+              {messages.map((message, index) => (
+                <div key={index} className={`mb-2 flex flex-col items-start ${message.sender === 'user' ? 'items-end' : 'items-start'}`}>
+                  <div className={`flex items-start ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
+                    {message.sender === 'ai' && <AIChatAvatar />}
+                    <div className={`ml-2 rounded-lg p-3 w-fit max-w-[60%] ${message.sender === 'user' ? 'bg-secondary text-secondary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                      {message.text}
+                    </div>
+                    {message.sender === 'user' && <UserChatAvatar />}
+                  </div>
+                  {message.sender === 'user' && message.insights && (
+                    <div className="text-xs text-gray-500 mt-1 w-full text-right">
+                      <p>AI Insights:</p>
+                      <p>테마: {message.insights.themes.join(', ')}</p>
+                      <p>감정: {message.insights.sentiment}</p>
+                      <p>요약: {message.insights.summary}</p>
+                    </div>
+                  )}
+                  {isLoadingInsights && index === messages.length - 1 && <p>AI가 분석중입니다...</p>}
                 </div>
-                {message.sender === 'user' && <UserChatAvatar />}
-              </div>
-            ))}
+              ))}
             </ScrollArea>
           </CardContent>
           <div className="p-4">
@@ -99,35 +120,7 @@ const ChatPage = ({ userId }: { userId: string }) => {
           </div>
         </Card>
       </div>
-
-      {/* AI Insights Panel */}
-      <div className="w-full md:w-96 p-4">
-        <Card className="h-full">
-          <CardHeader className="py-4">
-            <h2 className="text-lg font-semibold">AI 인사이트</h2>
-          </CardHeader>
-          <CardContent className="overflow-y-auto">
-            {isLoadingInsights ? (
-              <p>AI가 분석중입니다...</p>
-            ) : insights ? (
-              <>
-                <h3>테마:</h3>
-                <ul>
-                  {insights.themes.map((theme, index) => (
-                    <li key={index}>{theme}</li>
-                  ))}
-                </ul>
-                <h3>감정:</h3>
-                <p>{insights.sentiment}</p>
-                <h3>요약:</h3>
-                <p>{insights.summary}</p>
-              </>
-            ) : (
-              <p>아직 인사이트가 없습니다. 채팅을 시작하여 AI 분석을 확인하세요.</p>
-            )}
-          </CardContent>
-        </Card>
-      </div>
+      <Toaster />
     </div>
   );
 };
