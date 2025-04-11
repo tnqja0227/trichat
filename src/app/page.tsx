@@ -1,45 +1,16 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardHeader, CardContent } from "@/components/ui/card";
-import { generateInsights } from "@/ai/flows/generate-insights";
 import { Toaster } from "@/components/ui/toaster";
-import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { useToast } from "@/hooks/use-toast";
 
-const AIChatAvatar = () => {
-  return (
-    <Avatar>
-      <AvatarImage src="https://picsum.photos/200/200" alt="AI Chat"/>
-      <AvatarFallback>AI</AvatarFallback>
-    </Avatar>
-  );
-};
-
-const UserAvatar = () => {
-  return (
-    <Avatar>
-      <AvatarImage src="https://picsum.photos/200/200" alt="User"/>
-      <AvatarFallback>U</AvatarFallback>
-    </Avatar>
-  );
-};
-
-export default function Home() {
+// Separate ChatPage component
+const ChatPage = ({ userId }: { userId: string }) => {
   const [messages, setMessages] = useState<{ sender: 'user' | 'ai'; text: string; }[]>([]);
   const [input, setInput] = useState('');
-  const [insights, setInsights] = useState<{ themes: string[]; sentiment: string; summary: string; } | null>(null);
-  const chatContainerRef = useRef<HTMLDivElement>(null);
-  const { toast } = useToast();
-
-
-  useEffect(() => {
-    if (chatContainerRef.current) {
-      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
-    }
-  }, [messages]);
 
   const handleSend = async () => {
     if (!input.trim()) return;
@@ -48,46 +19,9 @@ export default function Home() {
     setMessages(prevMessages => [...prevMessages, newMessage]);
     setInput('');
 
-    // Optimistically update the UI
-    setMessages(prevMessages => [...prevMessages, { sender: 'ai', text: '채팅 분석중...' }]);
-
-    try {
-      // Construct the full chat history string
-      const chatHistory = [...messages, newMessage].map(m => `${m.sender}: ${m.text}`).join('\n');
-
-      const aiInsights = await generateInsights({ chatHistory });
-
-      // Replace the "Analyzing chat..." message with actual insights
-      setMessages(prevMessages => {
-        const updatedMessages = [...prevMessages];
-        const analyzingIndex = updatedMessages.findIndex(m => m.text === '채팅 분석중...');
-        if (analyzingIndex !== -1) {
-          updatedMessages.splice(analyzingIndex, 1); // Remove the "Analyzing chat..." message
-        }
-        return updatedMessages;
-      });
-
-      setInsights(aiInsights);
-      toast({
-        title: "AI 인사이트 업데이트",
-        description: "AI가 채팅을 분석하여 새로운 인사이트를 제공합니다.",
-      });
-    } catch (error: any) {
-      console.error("Failed to generate insights:", error);
-      setMessages(prevMessages => {
-        const updatedMessages = [...prevMessages];
-        const analyzingIndex = updatedMessages.findIndex(m => m.text === '채팅 분석중...');
-        if (analyzingIndex !== -1) {
-          updatedMessages[analyzingIndex] = { sender: 'ai', text: '채팅 분석 실패.' }; // Update the message
-        }
-        return updatedMessages;
-      });
-      toast({
-        title: "AI 인사이트 실패",
-        description: "AI 인사이트 생성에 실패했습니다. 다시 시도해주세요.",
-        variant: "destructive",
-      });
-    }
+    // TODO: Implement AI Chat Analysis here
+    // Construct the full chat history string
+    //const chatHistory = [...messages, newMessage].map(m => `${m.sender}: ${m.text}`).join('\n');
   };
 
   return (
@@ -96,12 +30,11 @@ export default function Home() {
       <div className="flex-1 p-4">
         <Card className="h-full flex flex-col">
           <CardHeader className="py-4">
-            <h2 className="text-lg font-semibold">실시간 채팅</h2>
+            <h2 className="text-lg font-semibold">실시간 채팅 ({userId}님)</h2>
           </CardHeader>
-          <CardContent className="flex-1 overflow-y-auto" ref={chatContainerRef}>
+          <CardContent className="flex-1 overflow-y-auto">
             {messages.map((message, index) => (
               <div key={index} className={`mb-2 flex items-start ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                {message.sender === 'ai' ? <AIChatAvatar /> : <UserAvatar />}
                 <div className={`ml-2 rounded-lg p-3 w-fit max-w-[60%] ${message.sender === 'user' ? 'bg-secondary text-secondary-foreground' : 'bg-muted text-muted-foreground'}`}>
                   {message.text}
                 </div>
@@ -127,38 +60,63 @@ export default function Home() {
       <div className="w-96 p-4">
         <Card className="h-full">
           <CardHeader className="py-4">
-            <h2 className="text-lg font-semibold">AI 인사이트</h2>
+            <h2 className="text-lg font-semibold">AI 인사이트 (준비중...)</h2>
           </CardHeader>
           <CardContent className="overflow-y-auto">
-            {insights ? (
-              <>
-                <div className="mb-4">
-                  <h3 className="text-md font-semibold">주요 테마:</h3>
-                  <ul>
-                    {insights.themes.map((theme, index) => (
-                      <li key={index} className="list-disc ml-4">{theme}</li>
-                    ))}
-                  </ul>
-                </div>
-                <div className="mb-4">
-                  <h3 className="text-md font-semibold">감정:</h3>
-                  <p>{insights.sentiment}</p>
-                </div>
-                <div>
-                  <h3 className="text-md font-semibold">요약:</h3>
-                  <p>{insights.summary}</p>
-                </div>
-              </>
-            ) : (
-              <p>아직 인사이트가 없습니다. 채팅을 시작하여 AI 분석을 확인하세요.</p>
-            )}
+            <p>아직 인사이트가 없습니다. 채팅을 시작하여 AI 분석을 확인하세요.</p>
           </CardContent>
         </Card>
       </div>
+    </div>
+  );
+};
+
+// Login Page
+export default function Home() {
+  const [userId, setUserId] = useState('');
+  const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loggedIn, setLoggedIn] = useState(false);
+  const router = useRouter();
+
+  const handleLogin = () => {
+    if ((userId === 'surae1' && password === 'surae1') || (userId === 'surae2' && password === 'surae2')) {
+      setLoggedIn(true);
+      setError('');
+    } else {
+      setError('아이디 또는 비밀번호가 잘못되었습니다.');
+    }
+  };
+
+  if (loggedIn) {
+    return <ChatPage userId={userId} />;
+  }
+
+  return (
+    <div className="flex flex-col items-center justify-center h-screen bg-background">
+      <Card className="w-96">
+        <CardHeader>
+          <h2 className="text-lg font-semibold">로그인</h2>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {error && <p className="text-red-500">{error}</p>}
+          <Input
+            type="text"
+            placeholder="사용자 아이디"
+            value={userId}
+            onChange={(e) => setUserId(e.target.value)}
+          />
+          <Input
+            type="password"
+            placeholder="비밀번호"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            onKeyDown={(e) => { if (e.key === 'Enter') handleLogin(); }}
+          />
+          <Button onClick={handleLogin}>로그인</Button>
+        </CardContent>
+      </Card>
       <Toaster />
     </div>
   );
 }
-
-
-    
