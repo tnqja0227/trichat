@@ -41,38 +41,37 @@ const ChatPage = ({ userId }: { userId: string }) => {
     const newMessage = { sender: userId as 'surae1' | 'surae2', text: input };
     setMessages(prevMessages => [...prevMessages, newMessage]);
     setInput('');
+
+    // Trigger AI insights only if the message ends with "(AI)"
+    if (input.endsWith('(AI)')) {
+      generateAiInsights(input);
+    }
   };
 
-  useEffect(() => {
-    const generateAiInsights = async () => {
-      if (messages.length > 0 && (messages[messages.length - 1].sender === 'surae1' || messages[messages.length - 1].sender === 'surae2')) {
-        setIsLoadingInsights(true);
-        const chatHistory = messages.map(m => `${m.sender}: ${m.text}`).join('\n');
-        try {
-          const insightsData = await generateInsights({ chatHistory });
+  const generateAiInsights = async (message: string) => {
+    setIsLoadingInsights(true);
+    const chatHistory = message;
+    try {
+      const insightsData = await generateInsights({ chatHistory });
 
-          // Find the last message sent by either surae1 or surae2 and add insights
-          setMessages(prevMessages => {
-            const updatedMessages = [...prevMessages];
-            for (let i = updatedMessages.length - 1; i >= 0; i--) {
-              if (updatedMessages[i].sender === 'surae1' || updatedMessages[i].sender === 'surae2') {
-                updatedMessages[i] = { ...updatedMessages[i], insights: insightsData, sender: updatedMessages[i].sender };
-                break; // Ensure we only update the latest message
-              }
-            }
-            return updatedMessages;
-          });
-
-        } catch (error) {
-          console.error("Error generating insights:", error);
-        } finally {
-          setIsLoadingInsights(false);
+      // Find the last message sent by either surae1 or surae2 and add insights
+      setMessages(prevMessages => {
+        const updatedMessages = [...prevMessages];
+        for (let i = updatedMessages.length - 1; i >= 0; i--) {
+          if (updatedMessages[i].sender === 'surae1' || updatedMessages[i].sender === 'surae2') {
+            updatedMessages[i] = { ...updatedMessages[i], insights: insightsData, sender: updatedMessages[i].sender };
+            break; // Ensure we only update the latest message
+          }
         }
-      }
-    };
+        return updatedMessages;
+      });
 
-    generateAiInsights();
-  }, [messages]);
+    } catch (error) {
+      console.error("Error generating insights:", error);
+    } finally {
+      setIsLoadingInsights(false);
+    }
+  };
 
   useEffect(() => {
     // Scroll to bottom on new message
@@ -216,6 +215,23 @@ export default function Home() {
     localStorage.removeItem('testMessage'); // Remove test message
   };
 
+  useEffect(() => {
+    const storedUserId = localStorage.getItem('userId');
+    if (storedUserId) {
+      setUserId(storedUserId);
+      setLoggedIn(true); // Auto-login if userId is found
+    }
+  }, []);
+
+  useEffect(() => {
+    if (loggedIn) {
+      localStorage.setItem('userId', userId);
+    } else {
+      localStorage.removeItem('userId');
+    }
+  }, [loggedIn, userId]);
+  
+
   if (loggedIn) {
     return (
         <>
@@ -237,7 +253,7 @@ export default function Home() {
             type="text"
             placeholder="사용자 아이디"
             value={userId}
-            onChange={(e) => setUserId(e.target.value)}
+            onChange={(e) => setUserId(e.target.value.trim())}
           />
           <Input
             type="password"
@@ -253,4 +269,3 @@ export default function Home() {
     </div>
   );
 }
-
