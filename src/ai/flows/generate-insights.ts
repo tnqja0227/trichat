@@ -1,4 +1,3 @@
-// This file is machine-generated - do not edit!
 'use server';
 /**
  * @fileOverview This file defines a Genkit flow for generating insights from a chat conversation.
@@ -41,14 +40,14 @@ const prompt = ai.definePrompt({
       summary: z.string().describe('A brief summary of the conversation.'),
     }),
   },
-  prompt: `Analyze the following chat history and provide insights into the conversation.
+  prompt: `다음 채팅 기록을 분석하고 대화에 대한 통찰력을 제공하십시오. 한국어로 답변해주세요.
 
-Chat History:
+채팅 기록:
 {{chatHistory}}
 
-Identify the key themes discussed, the overall sentiment expressed, and provide a concise summary of the conversation.
+논의된 주요 테마, 표현된 전반적인 감정을 파악하고 대화에 대한 간결한 요약을 제공하십시오.
 
-Output the themes as a list of strings, the sentiment as one of "positive", "negative", or "neutral", and the summary as a short paragraph.`,
+테마는 문자열 목록으로, 감정은 "긍정적", "부정적" 또는 "중립적" 중 하나로, 요약은 짧은 단락으로 출력합니다.`,
 });
 
 const generateInsightsFlow = ai.defineFlow<
@@ -66,3 +65,6 @@ const generateInsightsFlow = ai.defineFlow<
   }
 );
 
+
+
+    

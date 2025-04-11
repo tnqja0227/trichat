@@ -49,7 +49,7 @@ export default function Home() {
     setInput('');
 
     // Optimistically update the UI
-    setMessages(prevMessages => [...prevMessages, { sender: 'ai', text: 'Analyzing chat...' }]);
+    setMessages(prevMessages => [...prevMessages, { sender: 'ai', text: '채팅 분석중...' }]);
 
     try {
       // Construct the full chat history string
@@ -60,7 +60,7 @@ export default function Home() {
       // Replace the "Analyzing chat..." message with actual insights
       setMessages(prevMessages => {
         const updatedMessages = [...prevMessages];
-        const analyzingIndex = updatedMessages.findIndex(m => m.text === 'Analyzing chat...');
+        const analyzingIndex = updatedMessages.findIndex(m => m.text === '채팅 분석중...');
         if (analyzingIndex !== -1) {
           updatedMessages.splice(analyzingIndex, 1); // Remove the "Analyzing chat..." message
         }
@@ -76,7 +76,7 @@ export default function Home() {
       console.error("Failed to generate insights:", error);
       setMessages(prevMessages => {
         const updatedMessages = [...prevMessages];
-        const analyzingIndex = updatedMessages.findIndex(m => m.text === 'Analyzing chat...');
+        const analyzingIndex = updatedMessages.findIndex(m => m.text === '채팅 분석중...');
         if (analyzingIndex !== -1) {
           updatedMessages[analyzingIndex] = { sender: 'ai', text: '채팅 분석 실패.' }; // Update the message
         }
@@ -159,3 +159,6 @@ export default function Home() {
     </div>
   );
 }
+
+
+    
