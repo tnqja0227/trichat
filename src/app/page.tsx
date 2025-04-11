@@ -30,7 +30,7 @@ const UserChatAvatar = () => {
 
 // Separate ChatPage component
 const ChatPage = ({ userId }: { userId: string }) => {
-  const [messages, setMessages] = useState<{ sender: 'user' | 'ai'; text: string; insights?: { themes: string[]; sentiment: string; summary: string; }; }[]>([]);
+  const [messages, setMessages] = useState<{ sender: 'surae1' | 'surae2' | 'ai'; text: string; insights?: { themes: string[]; sentiment: string; summary: string; }; }[]>([]);
   const [input, setInput] = useState('');
   const [isLoadingInsights, setIsLoadingInsights] = useState(false);
   const chatContentRef = useRef<HTMLDivElement>(null);
@@ -38,23 +38,31 @@ const ChatPage = ({ userId }: { userId: string }) => {
   const handleSend = async () => {
     if (!input.trim()) return;
 
-    const newMessage = { sender: 'user', text: input };
+    const newMessage = { sender: userId as 'surae1' | 'surae2', text: input };
     setMessages(prevMessages => [...prevMessages, newMessage]);
     setInput('');
   };
 
   useEffect(() => {
     const generateAiInsights = async () => {
-      if (messages.length > 0 && messages[messages.length - 1].sender === 'user') {
+      if (messages.length > 0 && (messages[messages.length - 1].sender === 'surae1' || messages[messages.length - 1].sender === 'surae2')) {
         setIsLoadingInsights(true);
         const chatHistory = messages.map(m => `${m.sender}: ${m.text}`).join('\n');
         try {
           const insightsData = await generateInsights({ chatHistory });
+
+          // Find the last message sent by either surae1 or surae2 and add insights
           setMessages(prevMessages => {
             const updatedMessages = [...prevMessages];
-            updatedMessages[prevMessages.length - 1] = { ...updatedMessages[prevMessages.length - 1], insights: insightsData };
+            for (let i = updatedMessages.length - 1; i >= 0; i--) {
+              if (updatedMessages[i].sender === 'surae1' || updatedMessages[i].sender === 'surae2') {
+                updatedMessages[i] = { ...updatedMessages[i], insights: insightsData, sender: updatedMessages[i].sender };
+                break; // Ensure we only update the latest message
+              }
+            }
             return updatedMessages;
           });
+
         } catch (error) {
           console.error("Error generating insights:", error);
         } finally {
@@ -84,26 +92,30 @@ const ChatPage = ({ userId }: { userId: string }) => {
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto chat-content" ref={chatContentRef}>
             <ScrollArea className="h-full">
-              {messages.map((message, index) => (
-                <div key={index} className={`mb-2 flex flex-col items-start ${message.sender === 'user' ? 'items-end' : 'items-start'}`}>
-                  <div className={`flex items-start ${message.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-                    {message.sender === 'ai' && <AIChatAvatar />}
-                    <div className={`ml-2 rounded-lg p-3 w-fit max-w-[60%] ${message.sender === 'user' ? 'bg-secondary text-secondary-foreground' : 'bg-muted text-muted-foreground'}`}>
-                      {message.text}
+              {messages.map((message, index) => {
+                const isUserMessage = message.sender === 'surae1' || message.sender === 'surae2';
+
+                return (
+                  <div key={index} className={`mb-2 flex flex-col items-start ${isUserMessage ? 'items-end' : 'items-start'}`}>
+                    <div className={`flex items-start ${isUserMessage ? 'justify-end' : 'justify-start'}`}>
+                      {message.sender === 'ai' && <AIChatAvatar />}
+                      <div className={`ml-2 rounded-lg p-3 w-fit max-w-[60%] ${isUserMessage ? 'bg-secondary text-secondary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                        {message.text}
+                      </div>
+                      {isUserMessage && <UserChatAvatar />}
                     </div>
-                    {message.sender === 'user' && <UserChatAvatar />}
+                    {isUserMessage && message.insights && (
+                      <div className="text-xs text-gray-500 mt-1 w-full text-right">
+                        <p>AI Insights:</p>
+                        <p>테마: {message.insights.themes.join(', ')}</p>
+                        <p>감정: {message.insights.sentiment}</p>
+                        <p>요약: {message.insights.summary}</p>
+                      </div>
+                    )}
+                    {isLoadingInsights && index === messages.length - 1 && <p>AI가 분석중입니다...</p>}
                   </div>
-                  {message.sender === 'user' && message.insights && (
-                    <div className="text-xs text-gray-500 mt-1 w-full text-right">
-                      <p>AI Insights:</p>
-                      <p>테마: {message.insights.themes.join(', ')}</p>
-                      <p>감정: {message.insights.sentiment}</p>
-                      <p>요약: {message.insights.summary}</p>
-                    </div>
-                  )}
-                  {isLoadingInsights && index === messages.length - 1 && <p>AI가 분석중입니다...</p>}
-                </div>
-              ))}
+                );
+              })}
             </ScrollArea>
           </CardContent>
           <div className="p-4">
